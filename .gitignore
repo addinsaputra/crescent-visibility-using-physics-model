@@ -35,3 +35,8 @@ build/
 
 # Logs
 *.log
+
+# Large ephemeris files (too large for GitHub)
+*.bsp
+de440.bsp
+de421.bsp
