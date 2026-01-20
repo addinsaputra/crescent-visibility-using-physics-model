@@ -76,6 +76,15 @@ from bmkg_api_forecast import (
     LOCATION_CODES
 )
 
+# Import modul data lokasi pengamatan
+from nama_loc import (
+    get_list_lokasi,
+    get_lokasi_by_index,
+    get_lokasi_by_name,
+    print_daftar_lokasi,
+    pilih_lokasi_interaktif
+)
+
 # Import modul sunmoon dari direktori data-hisab
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'data-hisab'))
 from sunmoon import (
@@ -856,38 +865,140 @@ class HilalVisibilityCalculator:
 
 
 def main():
-    """Fungsi utama untuk demo dan testing prakiraan visibilitas hilal dengan BMKG API"""
+    """Fungsi utama untuk prakiraan visibilitas hilal dengan BMKG API"""
     
-    # Tampilkan lokasi yang tersedia
     print("=" * 70)
     print("PROGRAM PREDIKSI VISIBILITAS HILAL - DATA PRAKIRAAN BMKG")
     print("=" * 70)
-    print("\nLokasi predefined yang tersedia:")
+    
+    # ============================================================
+    # LANGKAH 1: PILIH LOKASI PENGAMATAN
+    # ============================================================
+    print("\n[LANGKAH 1] PILIH LOKASI PENGAMATAN")
+    
+    lokasi = pilih_lokasi_interaktif()
+    
+    if lokasi is None:
+        print("[!] Lokasi tidak valid. Program berhenti.")
+        return None
+    
+    # ============================================================
+    # LANGKAH 2: INPUT BULAN & TAHUN HIJRIAH
+    # ============================================================
+    print("\n[LANGKAH 2] INPUT DATA HIJRIAH")
+    
+    try:
+        bulan_hijri = int(input("Bulan Hijriah (1-12): "))
+        tahun_hijri = int(input("Tahun Hijriah (contoh: 1447): "))
+        
+        if not (1 <= bulan_hijri <= 12):
+            print("[!] Bulan harus antara 1-12!")
+            return None
+            
+    except ValueError:
+        print("[!] Input harus berupa angka!")
+        return None
+    
+    # ============================================================
+    # LANGKAH 3: INPUT KODE WILAYAH BMKG (ADM4)
+    # ============================================================
+    print("\n[LANGKAH 3] KODE WILAYAH BMKG")
+    print("Lokasi BMKG predefined yang tersedia:")
     for loc_name in list_available_locations():
         loc_data = LOCATION_CODES.get(loc_name, {})
         print(f"  - {loc_name}: {loc_data.get('name', '')} (adm4: {loc_data.get('adm4', '')})")
     
-    # Contoh penggunaan dengan lokasi UIN Walisongo
-    # Catatan: Untuk prediksi masa depan, gunakan bulan hijri yang akan datang
-    # BMKG hanya menyediakan data 3 hari ke depan
+    print("\nMasukkan kode wilayah adm4 BMKG (format: xx.xx.xx.xxxx)")
+    print("Contoh: 33.74.10.1003 untuk Ngaliyan, Semarang")
+    print("Tekan ENTER untuk menggunakan default (33.74.10.1003):")
+    
+    adm4_input = input("Kode ADM4: ").strip()
+    adm4_code = adm4_input if adm4_input else "33.74.10.1003"
+    
+    # ============================================================
+    # LANGKAH 4: TENTUKAN TIMEZONE
+    # ============================================================
+    print("\n[LANGKAH 4] PILIH ZONA WAKTU")
+    print("1. WIB  (Asia/Jakarta)     - UTC+7")
+    print("2. WITA (Asia/Makassar)    - UTC+8")
+    print("3. WIT  (Asia/Jayapura)    - UTC+9")
+    
+    try:
+        tz_pilihan = int(input("Pilihan (1-3) [default: 1]: ") or "1")
+        
+        if tz_pilihan == 1:
+            timezone_str = "Asia/Jakarta"
+        elif tz_pilihan == 2:
+            timezone_str = "Asia/Makassar"
+        elif tz_pilihan == 3:
+            timezone_str = "Asia/Jayapura"
+        else:
+            timezone_str = "Asia/Jakarta"
+            
+    except ValueError:
+        timezone_str = "Asia/Jakarta"
+    
+    # ============================================================
+    # LANGKAH 5: KONFIGURASI TELESKOP
+    # ============================================================
+    print("\n[LANGKAH 5] KONFIGURASI TELESKOP")
+    print("Tekan ENTER untuk menggunakan default")
+    
+    try:
+        aperture_input = input("Aperture teleskop (mm) [default: 100]: ").strip()
+        aperture = float(aperture_input) if aperture_input else 100.0
+        
+        magnification_input = input("Pembesaran teleskop [default: 50]: ").strip()
+        magnification = float(magnification_input) if magnification_input else 50.0
+        
+    except ValueError:
+        aperture = 100.0
+        magnification = 50.0
+    
+    # ============================================================
+    # KONFIRMASI DAN JALANKAN PERHITUNGAN
+    # ============================================================
+    print("\n" + "=" * 70)
+    print("KONFIRMASI INPUT")
+    print("=" * 70)
+    print(f"  Lokasi         : {lokasi['nama']}")
+    print(f"  Koordinat      : {lokasi['lat']}, {lokasi['lon']}")
+    print(f"  Elevasi        : {lokasi['elevasi']} m")
+    print(f"  Bulan/Tahun    : {bulan_hijri}/{tahun_hijri} H")
+    print(f"  Kode ADM4 BMKG : {adm4_code}")
+    print(f"  Timezone       : {timezone_str}")
+    print(f"  Teleskop       : {aperture}mm, {magnification}x")
+    print("=" * 70)
+    
+    konfirmasi = input("\nLanjutkan perhitungan? (y/n) [default: y]: ").strip().lower()
+    if konfirmasi == 'n':
+        print("Perhitungan dibatalkan.")
+        return None
+    
+    # ============================================================
+    # JALANKAN PERHITUNGAN
+    # ============================================================
+    print("\n" + "=" * 70)
+    print("MEMULAI PERHITUNGAN...")
+    print("=" * 70)
     
     calculator = HilalVisibilityCalculator(
-        nama_tempat="UIN Walisongo Semarang",
-        lintang=-6.9167,
-        bujur=110.3480,
-        elevasi=89,
-        timezone_str="Asia/Jakarta",
-        bulan_hijri=7,      # Rajab (sesuaikan dengan bulan yang akan datang)
-        tahun_hijri=1447,   # Tahun hijri yang sesuai
-        adm4_code="33.74.10.1003",  # Kelurahan Ngaliyan, Semarang
+        nama_tempat=lokasi['nama'],
+        lintang=lokasi['lat'],
+        bujur=lokasi['lon'],
+        elevasi=lokasi['elevasi'],
+        timezone_str=timezone_str,
+        bulan_hijri=bulan_hijri,
+        tahun_hijri=tahun_hijri,
+        adm4_code=adm4_code,
         delta_day_offset=0
     )
     
     # Jalankan perhitungan lengkap dengan teleskop
     hasil = calculator.jalankan_perhitungan_lengkap(
         use_telescope=True,
-        aperture=100.0,      # 100mm teleskop
-        magnification=50.0   # 50x pembesaran
+        aperture=aperture,
+        magnification=magnification
     )
     
     # Summary singkat
@@ -906,4 +1017,3 @@ def main():
 
 if __name__ == "__main__":
     hasil = main()
-

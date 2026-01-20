@@ -957,13 +957,13 @@ def main():
     # Lokasi: UIN Walisongo, Bulan: Muharram 1444
     
     calculator = HilalVisibilityCalculator(
-        nama_tempat="jakarta",
+        nama_tempat="uin_walisongo",
         lintang=-6.916666667, # aceh: 5.466769444, uin: -6.916666667, mataram: -8.346986111, sulamu-kupang:-10.04527778
         bujur=110.3480556, # aceh: 95.24221944, uin:110.3480556, mataram: 116.149, sulamu-kupang: 123.6061569
         elevasi=89,
         timezone_str="Asia/Jakarta",
-        bulan_hijri=1,      # Muharram
-        tahun_hijri=1444, 
+        bulan_hijri=8,      # Muharram
+        tahun_hijri=1447, 
         delta_day_offset=0
     )
     
